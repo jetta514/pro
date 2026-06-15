@@ -22,7 +22,7 @@ RESET="$(printf '\033[0m')"
 TIRE="$(printf '\033[4m')"
 
 termux_add() {
-  file_test="$HOME/test/.setup_termux"
+  file_test="$HOME/.test/setup_termux"
   if [ -f "$file_test" ]; then
 	  clear
     # echo " Начальная настройка Termux уже выполнена "
@@ -73,12 +73,12 @@ clear
 	# pkg install root-repo x11-repo ncurses-utils git which nano dialog proot proot-distro python npm  wget curl -y
 	pkg install root-repo x11-repo ncurses-utils git which nano wget curl -y
 
-    mkdir -p  $HOME/test
-    touch "$file_test"
-	clear
-     center_text "Установка важных утилит завершено"
-	sleep 2
-	clear
+    mkdir -p  $HOME/.test
+    touch $HOME/.test/setup_termux
+	  clear
+    center_text "Установка важных утилит завершено"
+    sleep 2
+    clear
   fi
 }
 
@@ -138,127 +138,8 @@ font_add() {
 	clear
 
 }
-style_add() {
 
-	clear
-	git clone https://github.com/adi1090x/termux-style
-	mkdir -p ~/.style
-	cp -r ~/termux-style/colors ~/.style
-	cp -r ~/termux-style/fonts ~/.style
-	rm -rf ~/termux-style
-	clear
-        center_text "Установка шрифта завешено"
-        sleep 3
-	clear
-
-	# Создание функции для быстрой смены шрифта и цветовой схемы
-   cat > $HOME/.config/fish/functions/sfont.fish << 'EOF'
-function sfont --description 'Выбор файла шрифта и его перемещение в ~/.termux'
-	set -l font_dir ~/.style/fonts
-	set -l target_dir ~/.termux
-
-	# Проверка существования директории
-	if not test -d "$font_dir"
-		echo "Ошибка: Директория $font_dir не найдена."
-		return 1
-	end
-
-	# Получаем список файлов
-	set -l files (ls -1 "$font_dir" 2>/dev/null)
-
-	if test -z "$files"
-		echo "В директории $font_dir нет файлов."
-		return 1
-	end
-
-	# Выводим меню
-	echo "Доступные файлы:"
-	set -l i 1
-	for f in $files
-		echo "$i) $f"
-		set i (math $i + 1)
-	end
-
-	# Запрашиваем ввод
-	read -p 'echo -n "Выберите номер файла: "' choice
-
-	# Валидация ввода (только цифры в пределах списка)
-	if string match -q -r '^[0-9]+$' "$choice"
-		if test "$choice" -ge 1 -a "$choice" -lt $i
-			set -l selected_file $files[$choice]
-
-			# Перемещение файла
-			cp "$font_dir/$selected_file" "$target_dir/font.ttf"
-
-			echo "Успешно: файл '$selected_file' перемещен в $target_dir/"
-			termux-reload-settings
-
-		else
-			echo "Ошибка: введен неверный номер."
-		end
-	else
-			echo "Ошибка: пожалуйста, введите число."
-	end
-end
-EOF
-
-   cat > $HOME/.config/fish/functions/scolor.fish << 'EOF'
-function scolor --description 'Выбор файла шрифта и его перемещение в
-~/.termux'
-	set -l color_dir ~/.style/colors
-	set -l target_dir ~/.termux
-
-	# Проверка существования директории
-	if not test -d "$color_dir"
-		echo "Ошибка: Директория $font_dir не найдена."
-		return 1
-	end
-
-	# Получаем список файлов
-	set -l files (ls -1 "$color_dir" 2>/dev/null)
-
-	if test -z "$files"
-		echo "В директории $color_dir нет файлов."
-		return 1
-	end
-
-	# Выводим меню
-	echo "Доступные файлы:"
-	set -l i 1
-	for f in $files
-		echo "$i) $f"
-		set i (math $i + 1)
-	end
-
-	# Запрашиваем ввод
-	read -p 'echo -n "Выберите номер файла: "' choice
-
-	# Валидация ввода (только цифры в пределах списка)
-	if string match -q -r '^[0-9]+$' "$choice"
-		if test "$choice" -ge 1 -a "$choice" -lt $i
-			set -l selected_file $files[$choice]
-
-			# Копирование файла
-			cp "$color_dir/$selected_file" "$target_dir/colors.properties"
-
-			echo "Успешно: файл '$selected_file' перемещен в $target_dir/"
-			termux-reload-settings
-
-		else
-			echo "Ошибка: введен неверный номер."
-		end
-	else
-			echo "Ошибка: пожалуйста, введите число."
-	end
-end
-EOF
-
-	clear
-	center_text "Установка шрифтов и цветовых схем завершена"
-	sleep 3
-
-}
-
+# Установка Daijin (аналог proot-distro)
 daijin_add() {
 	clear
 	center_text "Установка Daijin"
@@ -267,8 +148,8 @@ daijin_add() {
 	pkg install jq coreutils file proot tar xz-utils gzip -y
 	git clone https://github.com/RuriOSS/daijin.git && cd daijin
 	sed -i '/pkg install/s/$/ -y/' ~/daijin/build.sh && ./build.sh
-  arch=$(dpkg --print-architecture)
-	sleep 5
+  arch="$(dpkg --print-architecture)"
+	sleep 3
 	clear
 	sleep 3
 	dpkg -i daijin-${arch}.deb
@@ -278,6 +159,7 @@ daijin_add() {
 
 }
 
+# Настройка nano путем редактир. файла .nanorc
 nano_add() {
   clear
 	center_text "Настройка NANO"
