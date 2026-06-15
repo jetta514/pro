@@ -348,7 +348,6 @@ alias ls='eza --icons'
 alias ll='eza -l --icons'
 alias cat='bat --style=plain'
 alias q='exit'
-alias b='cd ..'
 alias h='cd ~/'
 alias ..='cd ../'
 alias c='clear'
@@ -360,6 +359,7 @@ alias prl='proot-distro login '
 alias prr='proot-distro rename '
 alias pr='proot-distro'
 alias pro='nano /sdcard/newnew/pro.sh'
+alias prod='cd /sdcard/newnew'
 alias .pro='bash /sdcard/newnew/pro.sh'" >> ~/.zshrc
 
         clear
