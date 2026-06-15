@@ -1,0 +1,21 @@
+#!/bin/bash
+# colors256.sh - вывод 256-цветной палитры терминала
+
+printf "Стандартные цвета (0-15):\n"
+for i in {0..15}; do
+    printf "\e[48;5;%sm %3s \e[0m " "$i" "$i"
+    done
+
+    printf "\n\nЦветовой куб (16-231):\n"
+    for i in {16..231}; do
+        # Добавляем перенос строки каждые 6 цветов для структуры куба
+            if [ $(( (i - 16) % 36 )) -eq 0 ]; then printf "\n"; fi
+                printf "\e[48;5;%sm %3s \e[0m " "$i" "$i"
+                done
+
+                printf "\n\nГрадации серого (232-255):\n"
+                for i in {232..255}; do
+                    printf "\e[48;5;%sm %3s \e[0m " "$i" "$i"
+                    done
+                    printf "\n"
+                    

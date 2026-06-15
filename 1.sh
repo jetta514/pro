@@ -1,0 +1,405 @@
+#!/bin/bash
+
+RED="$(printf '\033[0;31m')"
+GREEN="$(printf '\033[0;32m')"
+YELLOW="$(printf '\033[0;33m')"
+SIREN="$(printf '\033[0;34m')"
+PURPLE="$(printf '\033[0;35m')"
+CYAN="$(printf '\033[0;36m')"
+WHITE="$(printf '\033[0;37m')"
+RESET="$(printf '\033[0m')"
+TIRE="$(printf '\033[4m')"
+
+termux_add() {
+	cat > $HOME/.termux/termux.properties << 'EOF'
+allow-external-apps = true
+disable-terminal-session-change-toast = true
+soft-keyboard-toggle-behaviour = enable
+# fullscreen = true
+terminal-cursor-blink-rate = 400
+terminal-cursor-style = bar
+shortcut.create-session = ctrl + 3
+shortcut.next-session = ctrl + 2
+shortcut.previous-session = ctrl + 1
+terminal-onclick-url-open=true
+EOF
+
+	cat > $HOME/.termux/colors.properties << 'EOF'
+background=#0e1019
+foreground=#fffaf4
+cursor=#fffaf4
+
+color0=#232323
+color1=#ff000f
+color2=#8ce10b
+color3=#ffb900
+color4=#008df8
+color5=#6d43a6
+color6=#00d8eb
+color7=#ffffff
+color8=#444444
+color9=#ff2740
+color10=#abe15b
+color11=#ffd242
+color12=#0092ff
+color13=#9a5feb
+color14=#67fff0
+color15=#ffffff
+EOF
+
+	clear
+	echo -e "Первичная настройка Termux"
+	sleep 3
+	clear
+	echo > $HOME/../usr/etc/motd
+	termux-change-repo
+	sleep 2
+	termux-setup-storage
+	sleep 2
+	# pkg update && pkg upgrade -y
+	# pkg upgrade -y
+	pkg  upgrade -y -o Dpkg::Options::="--force-confold"
+	sleep 2
+	pkg install root-repo x11-repo ncurses-utils git which nano dialog -y
+	pkg install proot proot-distro python npm -y
+}
+
+# Функция центровки текста 
+center_text() {
+
+	# 1. Записываем входные данные
+	local text="$1"
+	# local color_code="${2:-}" # Если цвет не передан, будет пустая строка
+	local color_code="${GREEN}"
+
+	# 2. Определяем ширину терминала
+	# tput cols — более надежный способ получить текущую ширину
+	local terminal_width=$(tput cols 2>/dev/null || echo ${COLUMNS:-80})
+
+	# 3. Считаем чистую длину текста (без учета цветовых). Это важно, если ты
+	# захочешь передать уже раскрашенную строку
+	local clean_text=$(echo -e "$text" | sed 's/\x1b\[[0-9;]*m//g')
+	local text_length=${#clean_text}
+
+	# 4. Вычисляем отступ
+	local padding=$(((terminal_width - text_length) / 2 ))
+
+	# Проверка:
+	# если текст длиннее терминала, ставим отступ 0
+	if (( padding < 0 )); then padding=0; fi
+
+	# 5.
+	# Вывод
+	if [[ -n "$color_code" ]]; then
+		# Печатаем пробелы, затем цвет, затем текст и сброс цвета
+		printf '%*s' "$padding" ''
+		echo -e "${color_code}${text}${RESET}"
+	else
+		printf '%*s%s\n' "$padding" '' "$text"
+	fi
+	echo ""  # Переход на новую строку в конце
+
+}
+
+style_add() {
+
+	clear
+	center_text "Установка шрифтов и цветовых схем"
+	sleep 3
+	clear
+	git clone https://github.com/adi1090x/termux-style
+	mkdir -p ~/.style
+	cp -r ~/termux-style/colors ~/.style
+	cp -r ~/termux-style/fonts ~/.style
+	rm -rf ~/termux-style
+
+	# Создание функции для быстрой смены шрифта и цветовой схемы
+   cat > $HOME/.config/fish/functions/sfont.fish << 'EOF'
+function sfont --description 'Выбор файла шрифта и его перемещение в ~/.termux'
+	set -l font_dir ~/.style/fonts
+	set -l target_dir ~/.termux
+
+	# Проверка существования директории
+	if not test -d "$font_dir"
+		echo "Ошибка: Директория $font_dir не найдена."
+		return 1
+	end
+
+	# Получаем список файлов
+	set -l files (ls -1 "$font_dir" 2>/dev/null)
+
+	if test -z "$files"
+		echo "В директории $font_dir нет файлов."
+		return 1
+	end
+
+	# Выводим меню
+	echo "Доступные файлы:"
+	set -l i 1
+	for f in $files
+		echo "$i) $f"
+		set i (math $i + 1)
+	end
+
+	# Запрашиваем ввод
+	read -p 'echo -n "Выберите номер файла: "' choice
+
+	# Валидация ввода (только цифры в пределах списка)
+	if string match -q -r '^[0-9]+$' "$choice"
+		if test "$choice" -ge 1 -a "$choice" -lt $i
+			set -l selected_file $files[$choice]
+
+			# Перемещение файла
+			cp "$font_dir/$selected_file" "$target_dir/font.ttf"
+
+			echo "Успешно: файл '$selected_file' перемещен в $target_dir/"
+			termux-reload-settings
+
+		else
+			echo "Ошибка: введен неверный номер."
+		end
+	else
+			echo "Ошибка: пожалуйста, введите число."
+	end
+end
+EOF
+
+   cat > $HOME/.config/fish/functions/scolor.fish << 'EOF'
+function scolor --description 'Выбор файла шрифта и его перемещение в
+~/.termux'
+	set -l color_dir ~/.style/colors
+	set -l target_dir ~/.termux
+
+	# Проверка существования директории
+	if not test -d "$color_dir"
+		echo "Ошибка: Директория $font_dir не найдена."
+		return 1
+	end
+
+	# Получаем список файлов
+	set -l files (ls -1 "$color_dir" 2>/dev/null)
+
+	if test -z "$files"
+		echo "В директории $color_dir нет файлов."
+		return 1
+	end
+
+	# Выводим меню
+	echo "Доступные файлы:"
+	set -l i 1
+	for f in $files
+		echo "$i) $f"
+		set i (math $i + 1)
+	end
+
+	# Запрашиваем ввод
+	read -p 'echo -n "Выберите номер файла: "' choice
+
+	# Валидация ввода (только цифры в пределах списка)
+	if string match -q -r '^[0-9]+$' "$choice"
+		if test "$choice" -ge 1 -a "$choice" -lt $i
+			set -l selected_file $files[$choice]
+
+			# Копирование файла
+			cp "$color_dir/$selected_file" "$target_dir/colors.properties"
+
+			echo "Успешно: файл '$selected_file' перемещен в $target_dir/"
+			termux-reload-settings
+
+		else
+			echo "Ошибка: введен неверный номер."
+		end
+	else
+			echo "Ошибка: пожалуйста, введите число."
+	end
+end
+EOF
+
+	clear
+	center_text "Установка шрифтов и цветовых схем завершена"
+	sleep 3
+
+}
+
+daijin_add() {
+	clear
+	center_text "Установка Daijin"
+	sleep 3
+	clear
+	pkg install wget curl jq coreutils file proot tar xz-utils gzip -y
+	git clone https://github.com/RuriOSS/daijin.git && cd daijin
+	sed -i '/pkg install/s/$/ -y/' ~/daijin/build.sh && ./build.sh
+	sleep 5
+	clear
+	sleep 3
+	dpkg -i daijin-aarch64.deb
+	clear
+	center_text "Daijin установлен"
+	sleep 3
+
+}
+
+nano_add() {
+	mkdir -p ~/.back
+	cat > $HOME/.nanorc << 'EOF'
+set linenumbers
+set tabsize 2
+set autoindent
+# set tabstospaces
+set fill 80
+set breaklonglines
+set positionlog
+set historylog
+# set casesensitive
+set atblanks
+set boldtext
+set indicator
+set minibar
+set softwrap
+set trimblanks
+set titlecolor bold,yellow,blue
+set promptcolor lightwhite,grey
+set statuscolor bold,white,green
+set errorcolor bold,white,red
+set spotlightcolor black,lightyellow
+set selectedcolor lightwhite,magenta
+set stripecolor #444
+set scrollercolor cyan
+set numbercolor cyan
+set keycolor cyan
+set functioncolor green
+set smarthome
+set backup
+set backupdir "~/.back"
+set bookstyle
+set preserve
+EOF
+
+}
+
+fish_add() {
+	clear
+	center_text "Установка Fish"
+	sleep 3
+	clear
+	pkg install curl fish git python -y
+	echo "fish" | chsh
+	curl	https://raw.githubusercontent.com/oh-my-fish/oh-my-fish/master/bin/install | fish
+	sleep 3
+	bash -c 'fish -c "omf update"'
+	bash -c 'fish -c "omf install agnoster"'
+	bash -c 'fish -c "set -U fish_greeting ''"'
+	mkdir -p $HOME/.config/fish
+	cat > $HOME/.config/fish/config.fish << 'EOF'
+if status is-interactive
+	alias q='exit'
+	alias b='cd ..'
+	alias h='cd ~/'
+	alias c='clear'
+	alias k='pkill "termux"'
+	alias rc='nano ~/.config/fish/config.fish'
+	alias rd='cd ~/.config/fish'
+	alias lm='ls -A'
+	alias os='daijin'
+	alias pri='proot-distro install '
+	alias prl='proot-distro login '
+	alias prr='proot-distro rename '
+	alias pr='proot-distro'
+end
+EOF
+	clear
+	center_text "Fish установлен"
+	sleep 3
+
+}
+
+# Установка Udocker
+udocker_add() {
+	clear
+	center_text "Установка Udocker"
+	sleep 3
+	clear
+	pkg install udocker -y
+	udocker install
+	clear
+	center_text "Udocker установлен"
+	sleep 3
+
+}
+
+# Мое добавление: современные утилиты (экстра)
+extra_add() {
+	clear
+	center_text "Установка дополнительных утилит (eza, bat, fastfetch)"
+	sleep 2
+	pkg install eza bat fastfetch -y
+
+	# Добавляем алиасы в Fish, если конфиг существует
+	if [ -f "$HOME/.config/fish/config.fish" ]; then
+		cat >> $HOME/.config/fish/config.fish << 'EOF'
+
+# --- Extra Aliases ---
+alias ls='eza --icons'
+alias ll='eza -l --icons'
+alias cat='bat --style=plain'
+fastfetch
+EOF
+	fi
+	clear
+	center_text "Дополнительные утилиты установлены!"
+	sleep 3
+}
+
+run_all() {
+	termux_add
+	nano_add
+	fish_add
+	style_add
+	daijin_add
+	udocker_add
+	extra_add
+	clear
+	center_text "ГОТОВО: Все компоненты установлены"
+	sleep 3
+}
+
+# --- Интерактивное меню ---
+show_menu() {
+	while true; do
+		clear
+		echo -e "${CYAN}"
+		center_text "===================================="
+		center_text " TERMUX SETUP SCRIPT "
+		center_text "===================================="
+		echo -e "${RESET}"
+
+		echo -e "  ${YELLOW}1.${RESET} Первичная настройка Termux"
+		echo -e "  ${YELLOW}2.${RESET} Настройка Nano"
+		echo -e "  ${YELLOW}3.${RESET} Установка Fish и Oh-My-Fish"
+		echo -e "  ${YELLOW}4.${RESET} Установка шрифтов и цветовых схем"
+		echo -e "  ${YELLOW}5.${RESET} Установка Daijin"
+		echo -e "  ${YELLOW}6.${RESET} Установка Udocker"
+		echo -e "  ${YELLOW}7.${RESET} ${PURPLE}[Экстра]${RESET} Установка eza, bat, fastfetch"
+		echo -e "  ${YELLOW}8.${RESET} ${GREEN}Установить всё сразу${RESET}"
+		echo -e "  ${YELLOW}0.${RESET} ${RED}Выход${RESET}"
+		echo ""
+
+		read -p "$(echo -e ${SIREN}"  Выберите пункт меню (0-8): "${RESET})" choice
+
+		case $choice in
+			1) termux_add ;;
+			2) nano_add; clear; center_text "Nano настроен!"; sleep 2 ;;
+			3) fish_add ;;
+			4) style_add ;;
+			5) daijin_add ;;
+			6) udocker_add ;;
+			7) extra_add ;;
+			8) run_all ;;
+			0) clear; center_text "Выход..."; exit 0 ;;
+			*) echo -e "${RED}Неверный ввод, попробуйте снова.${RESET}"; sleep 1 ;;
+		esac
+	done
+}
+
+# Запуск меню при старте скрипта
+show_menu

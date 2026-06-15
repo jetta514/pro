@@ -1,0 +1,4 @@
+#!/bin/bash
+
+source color
+echo -e "${GREENB}${RED}test${RESET}"
