@@ -165,7 +165,7 @@ nano_add() {
 	center_text "Настройка NANO"
 	sleep 3
 	clear
-	mkdir -p ~/.back
+	# mkdir -p ~/.back
 	cat > $HOME/.nanorc << 'EOF'
 set linenumbers  # отображение номеров строк слева от текста.
 set tabsize 2  # установить размер табуляции в 2 пробела.
@@ -193,8 +193,8 @@ set numbercolor cyan
 set keycolor cyan
 set functioncolor green
 set smarthome
-set backup
-set backupdir "~/.back"
+# set backup
+# set backupdir "~/.back"
 set bookstyle
 set preserve
 EOF
